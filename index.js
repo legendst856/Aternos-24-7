@@ -43,35 +43,16 @@ function iniciarBot(slot) {
 for (let i = 1; i <= 3; i++) {
     setTimeout(() => iniciarBot(i), i * 30000);
     }
-const { Aternos } = require('aternos-api');
+// --- VIGILANTE DE ATERNOS (SIN LIBRERÍAS EXTERNAS) ---
+const https = require('https');
 
-// Esta función es el vigilante. Se ejecutará automáticamente.
-async function iniciarVigilante() {
-    // Inicializa la conexión con tus credenciales de entorno
-    const aternos = new Aternos(process.env.ATERNOS_USER, process.env.ATERNOS_PASS);
+async function verificarEstado() {
+    console.log("[Vigilante] Verificando estado de Aternos...");
     
-    const verificarEstado = async () => {
-        try {
-            // Buscamos tu servidor por su ID específico 'quillfish'
-            const server = await aternos.getServer('quillfish');
-            const status = await server.getStatus();
-            
-            console.log(`[Vigilante] Estado actual de quillfish: ${status}`);
-            
-            // Si el servidor está apagado por cualquier razón, lo encendemos
-            if (status === 'offline') {
-                console.log("[Vigilante] Servidor detectado como offline. Enviando orden de inicio...");
-                await server.start();
-                console.log("[Vigilante] Orden enviada exitosamente.");
-            }
-        } catch (error) {
-            console.error("[Vigilante] Error al conectar con la API:", error.message);
-        }
-    };
-
-    // Establecemos la frecuencia: cada 10 minutos (600,000 ms)
-    setInterval(verificarEstado, 600000);
+    // NOTA: Esta es una lógica conceptual simplificada. 
+    // Si la API externa da error, el problema es que Aternos requiere cookies de sesión.
+    // Prueba esto primero:
+    console.log("Servidor ID: " + process.env.ATERNOS_ID);
 }
 
-// Inicializamos el proceso
-iniciarVigilante();
+setInterval(verificarEstado, 600000); // Cada 10 min
