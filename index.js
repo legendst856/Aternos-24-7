@@ -43,34 +43,32 @@ function iniciarBot(slot) {
 for (let i = 1; i <= 3; i++) {
     setTimeout(() => iniciarBot(i), i * 30000);
     }
-const { Aternos } = require('aternos-api');
+const https = require('https');
 
-// Configuración usando las variables de entorno de Render/Railway
-const aternos = new Aternos(process.env.ATERNOS_USER, process.env.ATERNOS_PASS);
+async function iniciarServidor() {
+    const data = JSON.stringify({
+        'server': process.env.ATERNOS_ID,
+        'action': 'start'
+    });
 
-async function activarPortal() {
-    try {
-        console.log("[Vigilante] Buscando servidor...");
-        // Buscamos tu servidor por nombre/ID
-        const server = await aternos.getServer('quillfish');
-        const status = await server.getStatus();
-        
-        console.log(`[Vigilante] Estado actual: ${status}`);
-        
-        if (status === 'offline') {
-            console.log("[Vigilante] Portal detectado apagado. Iniciando proceso de encendido...");
-            await server.start();
-            console.log("[Vigilante] ¡Portal abierto correctamente!");
-        } else if (status === 'online') {
-            console.log("[Vigilante] El portal ya está abierto.");
+    const options = {
+        hostname: 'aternos.org',
+        path: '/panel/ajax/start.php',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Cookie': process.env.ATERNOS_COOKIE // Aquí debes poner tu cookie de sesión
         }
-    } catch (error) {
-        console.error("[Vigilante] Error detectado:", error.message);
-    }
+    };
+
+    const req = https.request(options, (res) => {
+        console.log(`[Vigilante] Respuesta de Aternos: ${res.statusCode}`);
+    });
+
+    req.write(data);
+    req.end();
 }
 
-// Ejecutamos la vigilancia cada 5 minutos (300,000 ms)
-setInterval(activarPortal, 300000);
-
-// Ejecutar una vez al arrancar
-activarPortal();
+// Ejecutar cada 10 minutos
+setInterval(iniciarServidor, 600000);
+console.log("[Vigilante] Sistema listo.");
