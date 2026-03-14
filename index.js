@@ -43,16 +43,3 @@ function iniciarBot(slot) {
 for (let i = 1; i <= 3; i++) {
     setTimeout(() => iniciarBot(i), i * 30000);
     }
-// --- VIGILANTE DE ATERNOS (SIN LIBRERÍAS EXTERNAS) ---
-const https = require('https');
-
-async function verificarEstado() {
-    console.log("[Vigilante] Verificando estado de Aternos...");
-    
-    // NOTA: Esta es una lógica conceptual simplificada. 
-    // Si la API externa da error, el problema es que Aternos requiere cookies de sesión.
-    // Prueba esto primero:
-    console.log("Servidor ID: " + process.env.ATERNOS_ID);
-}
-
-setInterval(verificarEstado, 600000); // Cada 10 min
