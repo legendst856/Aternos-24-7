@@ -49,9 +49,21 @@ function iniciarBot(slot) {
     });
 
     bot.on('error', (err) => console.log(`[Slot ${slot}] Error: ${err.message}`));
-}
-// En lugar de usar solo process.env.ATERNOS_COOKIE, combinaremos dos partes
-const cookieCompleta = process.env.ATERNOS_COOKIE_1 + process.env.ATERNOS_COOKIE_2;
+    
+    // Asegúrate de que esta línea esté así en tu código:
+const cookieCompleta = (process.env.ATERNOS_COOKIE_1.replace(/(\r\n|\n|\r)/gm, "") + 
+                        process.env.ATERNOS_COOKIE_2.replace(/(\r\n|\n|\r)/gm, "")).trim();
+
+// Luego en las opciones del servidor:
+const options = {
+    hostname: 'aternos.org',
+    path: `/panel/ajax/start.php?head=start&serverId=${process.env.ATERNOS_ID}`,
+    method: 'POST',
+    headers: { 
+        'Cookie': cookieCompleta,
+        'User-Agent': 'Mozilla/5.0' // A veces Aternos rechaza si no hay esto
+    }
+};
 
 // Y en la parte de los headers del 'iniciarServidor', usa la nueva variable combinada:
 const options = {
