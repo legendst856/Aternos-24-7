@@ -15,6 +15,5 @@
     "minecraft-data": "^3.105.0",
     "mineflayer": "^4.35.0",
     "mineflayer-pathfinder": "^2.4.5",
-    "aternos-api": "https://github.com/Jaumoy/aternos-api.git"
   }
 }
