@@ -49,11 +49,33 @@ function iniciarBot(slot) {
     });
 
     bot.on('error', (err) => console.log(`[Slot ${slot}] Error: ${err.message}`));
-    
-    // Asegúrate de que esta línea esté así en tu código:
-const cookieCompleta = (process.env.ATERNOS_COOKIE_1.replace(/(\r\n|\n|\r)/gm, "") + 
-                        process.env.ATERNOS_COOKIE_2.replace(/(\r\n|\n|\r)/gm, "")).trim();
 
+    const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
+
+async function encenderServer() {
+    const browser = await puppeteer.launch({
+        args: [...chromium.args, '--no-sandbox'],
+        executablePath: await chromium.executablePath(),
+        headless: false, // Ponlo en "false" solo la primera vez para ver qué pasa
+        userDataDir: './sesion_bot' // AQUÍ ESTÁ EL TRUCO: guarda tu login
+    });
+
+    const page = await browser.newPage();
+    await page.goto('https://aternos.org/go/');
+
+    // La primera vez, loguéate manualmente. 
+    // Como estamos guardando el 'userDataDir', la próxima vez ya estarás dentro.
+    
+    // Una vez dentro, buscar el botón
+    await page.waitForSelector('.btn-success', { timeout: 60000 });
+    await page.click('.btn-success');
+    
+    console.log("¡Clic realizado!");
+    await browser.close();
+}
+
+encenderServer();
 // Luego en las opciones del servidor:
 const options = {
     hostname: 'aternos.org',
