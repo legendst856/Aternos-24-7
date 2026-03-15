@@ -1,70 +1,50 @@
 const mineflayer = require('mineflayer');
 const http = require('http');
-const https = require('https');
 
-// 1. Mantener vivo el proceso en Render/Railway
+// Mantiene el proceso vivo en Render
 http.createServer((req, res) => res.end('Sistema Activo')).listen(process.env.PORT || 10000);
 
 const CONFIG = { host: 'serverlozano.aternos.me', port: 53121, version: '1.21.1', auth: 'offline' };
-const NOMBRES = ['BoA', 'BoB', 'BoC', 'BoD', 'BoE', 'BoF', 'play', 'play2', 'play3', 'User4'];
 
-// Función para notificar a Discord
-function enviarDiscord(mensaje) {
-    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-    if (!webhookUrl) return;
-    const data = JSON.stringify({ content: mensaje });
-    const url = new URL(webhookUrl);
-    const options = { hostname: url.hostname, path: url.pathname, method: 'POST', headers: { 'Content-Type': 'application/json' } };
-    const req = https.request(options, (res) => {});
-    req.on('error', (e) => console.error(`[Discord] Error: ${e.message}`));
-    req.write(data);
-    req.end();
+// Genera un nombre aleatorio estilo "Player_1234"
+function generarNombre() {
+    return 'Player_' + Math.floor(Math.random() * 9000 + 1000);
 }
 
-// 2. Función para iniciar un bot específico
 function iniciarBot(slot) {
-    const nombre = NOMBRES[Math.floor(Math.random() * NOMBRES.length)];
+    const nombre = generarNombre();
+    console.log(`[Slot ${slot}] Iniciando como ${nombre}...`);
+    
     const bot = mineflayer.createBot({ ...CONFIG, username: nombre });
 
-    // Rotación de identidad cada 4 horas (14,400,000 ms)
+    // Cambiar de nombre cada 4 horas (14,400,000 ms)
     const timer = setTimeout(() => {
-        enviarDiscord(`🔄 **[Slot ${slot}]** ${nombre} cumplió 4 horas. Reiniciando identidad...`);
+        console.log(`[Slot ${slot}] Ciclo de 4h completado. Reiniciando identidad...`);
         bot.quit();
     }, 14400000);
 
     bot.on('spawn', () => {
-        enviarDiscord(`✅ **${nombre}** (Slot ${slot}) conectado.`);
-        
-        // Anti-AFK
+        console.log(`✅ ${nombre} conectado en el Slot ${slot}.`);
+        // Anti-AFK ligero: Saltar cada 5 minutos
         setInterval(() => {
             bot.setControlState('jump', true);
             setTimeout(() => bot.setControlState('jump', false), 200);
-        }, 300000); 
+        }, 300000);
     });
 
-    // Si el bot se desconecta (por el timer o error), reconectar
     bot.on('end', () => {
         clearTimeout(timer);
-        setTimeout(() => iniciarBot(slot), 5000);
+        console.log(`[Slot ${slot}] Bot desconectado. Reconectando en 30s...`);
+        setTimeout(() => iniciarBot(slot), 30000);
     });
 
-    bot.on('error', (err) => console.log(`[Slot ${slot}] Error: ${err.message}`));
-
-    const req = https.request(options, (res) => {
-        if (res.statusCode === 200) {
-            enviarDiscord("🚀 **[Vigilante]** Servidor solicitado. Esperando 120s para cargar...");
-            setTimeout(() => {
-                for (let i = 1; i <= 6; i++) {
-                    setTimeout(() => iniciarBot(i), i * 15000);
-                }
-            }, 120000);
-        } else {
-            enviarDiscord(`⚠️ **[Vigilante]** Error al encender (Código ${res.statusCode}). Revisa tu ATERNOS_COOKIE.`);
-        }
+    bot.on('error', (err) => {
+        console.log(`[Slot ${slot}] Error: ${err.message}`);
+        bot.quit();
     });
-    req.end();
 }
 
-// Iniciar sistema
-iniciarServidor();
-setInterval(iniciarServidor, 900000); // Intentar encender cada 15 min
+// Lanza los bots con retraso para no colapsar la RAM de Render
+for (let i = 1; i <= 6; i++) {
+    setTimeout(() => iniciarBot(i), i * 15000);
+                    }
