@@ -1,0 +1,8 @@
+app = "mi-portal-tamcpoco" # Ponle un nombre único aquí
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080 # O el puerto que use tu app
+  force_https = true
