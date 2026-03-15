@@ -25,13 +25,13 @@ function iniciarBot(slot) {
             setTimeout(() => bot.setControlState('jump', false), 200);
         }, 300000); 
 
-        // Rotación: Después de 4 horas exactas (240 minutos), cambiar identidad
+        // Rotación: Después de 1 horas exactas (60 minutos), cambiar identidad
         setTimeout(() => {
-            console.log(`[Slot ${slot}] Cumplió 4 horas. Cambiando nombre...`);
+            console.log(`[Slot ${slot}] Cumplió 1 horas. Cambiando nombre...`);
             bot.quit();
             // Espera 5 segundos y vuelve a conectar con nuevo nombre
             setTimeout(() => iniciarBot(slot), 5000);
-        }, 240 * 60 * 1000);
+        }, 60 * 60 * 1000);
     });
 
     // Reintento automático
