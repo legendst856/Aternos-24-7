@@ -7,7 +7,7 @@ http.createServer((req, res) => res.end('Sistema Activo')).listen(process.env.PO
 const CONFIG = { host: 'serverlozano.aternos.me', port: 53121, version: '1.21.1', auth: 'offline' };
 
 // Lista de nombres para rotar cada vez que el bot se reconecte
-const NOMBRES = ['BotA', 'BotB', 'BotC', 'BotD', 'BotE', 'BotF', 'Jugador1', 'Jugador2', 'User3', 'User4'];
+const NOMBRES = ['BoA', 'BoB', 'BoC', 'BoD', 'BoE', 'BoF', 'play', 'play2', 'play3', 'User4'];
 
 function iniciarBot(slot) {
     const nombre = NOMBRES[Math.floor(Math.random() * NOMBRES.length)];
