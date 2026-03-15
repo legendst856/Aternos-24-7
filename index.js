@@ -50,50 +50,6 @@ function iniciarBot(slot) {
 
     bot.on('error', (err) => console.log(`[Slot ${slot}] Error: ${err.message}`));
 
-    const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chromium');
-
-async function encenderServer() {
-    const browser = await puppeteer.launch({
-        args: [...chromium.args, '--no-sandbox'],
-        executablePath: await chromium.executablePath(),
-        headless: false, // Ponlo en "false" solo la primera vez para ver qué pasa
-        userDataDir: './sesion_bot' // AQUÍ ESTÁ EL TRUCO: guarda tu login
-    });
-
-    const page = await browser.newPage();
-    await page.goto('https://aternos.org/go/');
-
-    // La primera vez, loguéate manualmente. 
-    // Como estamos guardando el 'userDataDir', la próxima vez ya estarás dentro.
-    
-    // Una vez dentro, buscar el botón
-    await page.waitForSelector('.btn-success', { timeout: 60000 });
-    await page.click('.btn-success');
-    
-    console.log("¡Clic realizado!");
-    await browser.close();
-}
-
-encenderServer();
-// Luego en las opciones del servidor:
-const options = {
-    hostname: 'aternos.org',
-    path: `/panel/ajax/start.php?head=start&serverId=${process.env.ATERNOS_ID}`,
-    method: 'POST',
-    headers: { 
-        'Cookie': cookieCompleta,
-        'User-Agent': 'Mozilla/5.0' // A veces Aternos rechaza si no hay esto
-    }
-};
-
-// Y en la parte de los headers del 'iniciarServidor', usa la nueva variable combinada:
-const options = {
-    hostname: 'aternos.org',
-    path: `/panel/ajax/start.php?head=start&serverId=${process.env.ATERNOS_ID}`,
-    method: 'POST',
-    headers: { 'Cookie': cookieCompleta } // AQUÍ ESTÁ EL CAMBIO
-};
     const req = https.request(options, (res) => {
         if (res.statusCode === 200) {
             enviarDiscord("🚀 **[Vigilante]** Servidor solicitado. Esperando 120s para cargar...");
