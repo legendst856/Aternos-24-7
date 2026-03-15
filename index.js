@@ -6,7 +6,7 @@ const https = require('https');
 http.createServer((req, res) => res.end('Sistema Activo')).listen(process.env.PORT || 10000);
 
 const CONFIG = { host: 'serverlozano.aternos.me', port: 53121, version: '1.21.1', auth: 'offline' };
-const NOMBRES = ['BoA', 'BoB', 'BoC', 'BoD', 'BoE', 'BoF', 'play', 'play2', 'play3', 'User4'];
+const NOMBRES = ['BoA', 'BoB', 'BoC', 'BoD', 'BoE', 'BoF', 'play', 'play2', 'play3', 'User4', 'user5'];
 
 // 2. Lógica del Bot
 function iniciarBot(slot) {
