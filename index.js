@@ -50,16 +50,16 @@ function iniciarBot(slot) {
 
     bot.on('error', (err) => console.log(`[Slot ${slot}] Error: ${err.message}`));
 }
+// En lugar de usar solo process.env.ATERNOS_COOKIE, combinaremos dos partes
+const cookieCompleta = process.env.ATERNOS_COOKIE_1 + process.env.ATERNOS_COOKIE_2;
 
-// 3. Vigilante de Aternos
-async function iniciarServidor() {
-    const options = {
-        hostname: 'aternos.org',
-        path: `/panel/ajax/start.php?head=start&serverId=${process.env.ATERNOS_ID}`,
-        method: 'POST',
-        headers: { 'Cookie': process.env.ATERNOS_COOKIE }
-    };
-
+// Y en la parte de los headers del 'iniciarServidor', usa la nueva variable combinada:
+const options = {
+    hostname: 'aternos.org',
+    path: `/panel/ajax/start.php?head=start&serverId=${process.env.ATERNOS_ID}`,
+    method: 'POST',
+    headers: { 'Cookie': cookieCompleta } // AQUÍ ESTÁ EL CAMBIO
+};
     const req = https.request(options, (res) => {
         if (res.statusCode === 200) {
             enviarDiscord("🚀 **[Vigilante]** Servidor solicitado. Esperando 120s para cargar...");
