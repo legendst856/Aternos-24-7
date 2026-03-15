@@ -53,7 +53,7 @@ async function iniciarServidor() {
 
     const options = {
         hostname: 'aternos.org',
-        path: '/panel/ajax/start.php',
+        path: `/panel/ajax/start.php?head=start&serverId=${process.env.ATERNOS_ID}`, // <--- ¡AQUÍ ESTÁ EL TRUCO!
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
