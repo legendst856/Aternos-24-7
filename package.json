@@ -14,8 +14,6 @@
     "express": "^5.2.1",
     "minecraft-data": "^3.105.0",
     "mineflayer": "^4.35.0",
-    "mineflayer-pathfinder": "^2.4.5",
-    "puppeteer-core": "^23.0.0",
-    "@sparticuz/chromium": "^127.0.0"
+    "mineflayer-pathfinder": "^2.4.5"
   }
 }
