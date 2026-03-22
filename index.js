@@ -1,69 +1,61 @@
 const mineflayer = require('mineflayer');
 
-// Función para generar nombres aleatorios (Estilo Jugador Real)
-function generarNombreAleatorio() {
-    const prefijos = ['User', 'Player', 'Gamer', 'Pro', 'Mine', 'Craft', 'Steve', 'Alex', 'Ghost'];
-    const sufijos = ['_99', '2026', 'MC', '_Vip', '777', 'Pro', '_X', 'Lozano', 'Portal'];
-    
-    const randomPrefijo = prefijos[Math.floor(Math.random() * prefijos.length)];
-    const randomSufijo = sufijos[Math.floor(Math.random() * sufijos.length)];
-    const numeroAzar = Math.floor(Math.random() * 900) + 100;
-    
-    return `${randomPrefijo}${randomSufijo}${numeroAzar}`.substring(0, 16); 
+// Nombres aleatorios para saltar el baneo
+function generarNombre() {
+    const nombres = ['LozanoBot', 'PortalVip', 'Steve_777', 'Ghost_MC', 'User_Lozano'];
+    const random = Math.floor(Math.random() * 900) + 100;
+    return `${nombres[Math.floor(Math.random() * nombres.length)]}${random}`;
 }
 
 function iniciarBot() {
-    const nombreNuevo = generarNombreAleatorio();
-    console.log(`🚀 [PORTAL] Generando nueva identidad: ${nombreNuevo}`);
+    const botNombre = generarNombre();
+    console.log(`\n🔍 [INTENTO] Probando conexión con: ${botNombre}`);
 
-    const botArgs = {
+    const bot = mineflayer.createBot({
         host: 'serverlozano.aternos.me',
-        username: nombreNuevo,
+        username: botNombre,
         version: false,
-        connectTimeout: 60000 
-    };
-
-    const bot = mineflayer.createBot(botArgs);
-
-    // --- ACCIÓN AL ENTRAR ---
-    bot.on('spawn', () => {
-        console.log(`✅ [PORTAL] ${bot.username} ha cruzado el portal con éxito.`);
-        
-        // Anti-AFK Humano: Salto y rotación aleatoria
-        setInterval(() => {
-            if (bot.entity) {
-                bot.setControlState('jump', true);
-                setTimeout(() => bot.setControlState('jump', false), 500);
-                
-                // Mirar a un punto aleatorio para engañar al sistema
-                bot.look(Math.random() * 6, Math.random() * 2);
-            }
-        }, 25000);
+        connectTimeout: 90000, // Aumentamos a 90 segundos (paciencia extrema)
     });
 
-    // --- RECONEXIÓN CON NUEVA IDENTIDAD ---
-    bot.on('end', () => {
-        console.log("⏳ [PORTAL] Conexión cerrada. Cambiando identidad y reintentando en 20s...");
-        // IMPORTANTE: Esperamos un poco más para que Aternos limpie la sesión anterior
-        setTimeout(iniciarBot, 20000); 
-    });
-
-    // --- MANEJO DE ERRORES ---
+    // --- MANEJO DE ERRORES (Aquí es donde evitamos que muera) ---
     bot.on('error', (err) => {
         if (err.code === 'ETIMEOUT') {
-            console.log("⚠️ [TIMEOUT] El portal está cerrado o cargando...");
+            console.log("⚠️ [ESPERA] El servidor no responde (ETIMEOUT). Reintentando...");
+        } else if (err.code === 'ECONNREFUSED') {
+            console.log("🚫 [OFFLINE] El portal está cerrado.");
         } else {
-            console.log(`❗ [ERROR] ${err.message}`);
+            console.log("❗ [ERROR] " + err.message);
         }
+    });
+
+    bot.on('spawn', () => {
+        console.log(`✅ [PORTAL] ${bot.username} está dentro.`);
+        // Acción Anti-AFK
+        setInterval(() => {
+            if (bot.entity) bot.setControlState('jump', true);
+            setTimeout(() => bot.setControlState('jump', false), 500);
+        }, 30000);
+    });
+
+    // --- REINTENTO AUTOMÁTICO PASE LO QUE PASE ---
+    bot.on('end', () => {
+        console.log("⏳ [PORTAL] Reiniciando conexión en 20 segundos...");
+        setTimeout(iniciarBot, 20000); 
     });
 }
 
-// Iniciar el ciclo infinito
-iniciarBot();
+// Arrancar el sistema
+try {
+    iniciarBot();
+} catch (e) {
+    console.log("❌ Error fatal evitado: " + e.message);
+    setTimeout(iniciarBot, 30000);
+}
 
-// --- SERVIDOR WEB PARA MANTENER RENDER DESPIERTO ---
+// --- SERVIDOR PARA RENDER ---
 const http = require('http');
 http.createServer((req, res) => {
-    res.write("Portal Lozano: Vigilante Activo");
+    res.write("Portal Lozano 24/7 Corriendo");
     res.end();
 }).listen(process.env.PORT || 3000);
