@@ -1,9 +1,10 @@
 const mineflayer = require('mineflayer');
-const { pvp } = require('mineflayer-pvp');
+// --- CORRECCIÓN AQUÍ: Importamos específicamente la propiedad 'plugin' ---
+const pvp = require('mineflayer-pvp').plugin; 
 const { pathfinder, Movements } = require('mineflayer-pathfinder');
 const mcDataFactory = require('minecraft-data');
 
-// --- ESCUDO GLOBAL: EVITA QUE EL PROCESO SE CIERRE ---
+// ESCUDO TOTAL: Si algo falla, el bot no se muere
 process.on('uncaughtException', (err) => {
     console.log(`🛡️ [ESCUDO] Error bloqueado: ${err.message}`);
 });
@@ -14,71 +15,54 @@ function crearGladiador(nombre) {
     const bot = mineflayer.createBot({
         host: 'serverlozano.aternos.me',
         username: nombre,
-        version: '1.21.1', // Versión madre
-        connectTimeout: 90000,
-        checkTimeoutInterval: 60000
+        version: '1.21.1', 
+        connectTimeout: 90000
     });
 
+    // Ahora sí se cargan correctamente porque 'pvp' es una función
     bot.loadPlugin(pvp);
     bot.loadPlugin(pathfinder);
 
     bot.once('spawn', () => {
-        console.log(`✅ [${bot.username}] En el mundo. Esperando 10s para estabilizar...`);
-
-        // Espera larga de 10 segundos para que Aternos cargue el mapa completo
+        console.log(`✅ [${bot.username}] Dentro del portal.`);
+        
         setTimeout(() => {
             try {
                 const mcData = mcDataFactory('1.21.1');
                 const movements = new Movements(bot, mcData);
-                
-                // CONFIGURACIÓN ANTI-ERRORES
                 movements.canDig = false; 
-                movements.allow1by1towers = false; // Evita que el bot intente subir bloques
                 bot.pathfinder.setMovements(movements);
                 
-                console.log(`🧠 [${bot.username}] Cerebro configurado. Buscando combate...`);
+                console.log(`🧠 [${bot.username}] Cerebro de combate listo.`);
 
-                // CICLO DE PELEA SEGURO
                 setInterval(() => {
-                    try {
-                        const rival = bot.nearestEntity(e => e.type === 'player' && e.username !== bot.username);
-                        if (rival && bot.pvp && bot.entity) {
-                            bot.pvp.attack(rival);
-                        }
-                    } catch (innerErr) {
-                        // Si falla el ataque, simplemente no hace nada este turno
+                    const rival = bot.nearestEntity(e => e.type === 'player' && e.username !== bot.username);
+                    if (rival && bot.pvp) {
+                        bot.pvp.attack(rival);
                     }
                 }, 10000);
-
-            } catch (error) {
-                console.log("⚠️ Error de carga inicial. Reiniciando bot...");
-                bot.quit();
+            } catch (e) {
+                console.log("⚠️ Error al cargar físicas: " + e.message);
             }
-        }, 10000);
+        }, 8000);
     });
 
     bot.on('death', () => {
-        console.log(`💀 ${bot.username} murió. Reapareciendo...`);
-        setTimeout(() => { if (bot.isAlive) bot.emit('respawn'); }, 2000);
+        setTimeout(() => { if (bot.isAlive === false) bot.emit('respawn'); }, 2000);
     });
 
-    bot.on('end', (reason) => {
-        console.log(`⏳ Conexión perdida (${reason}). Reintentando en 15s...`);
+    bot.on('end', () => {
         setTimeout(() => crearGladiador(nombre), 15000);
-    });
-
-    bot.on('error', (err) => {
-        console.log(`❗ Error detectado en ${bot.username}: ${err.message}`);
     });
 }
 
-// LANZAR BOTS
+// INICIAR BOTS
 crearGladiador("Gladiador_1");
 crearGladiador("Gladiador_2");
 
-// SERVIDOR HTTP PARA RENDER
+// --- SERVIDOR PARA RAILWAY (Imprescindible para el Uptime) ---
 const http = require('http');
 http.createServer((req, res) => {
-    res.write("Portal 1.21.1 Blindado");
+    res.write("Portal Lozano 1.21.1 - Online");
     res.end();
 }).listen(process.env.PORT || 3000);
