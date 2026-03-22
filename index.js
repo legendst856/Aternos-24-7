@@ -3,78 +3,82 @@ const { pvp } = require('mineflayer-pvp');
 const { pathfinder, Movements } = require('mineflayer-pathfinder');
 const mcDataFactory = require('minecraft-data');
 
+// --- ESCUDO GLOBAL: EVITA QUE EL PROCESO SE CIERRE ---
+process.on('uncaughtException', (err) => {
+    console.log(`🛡️ [ESCUDO] Error bloqueado: ${err.message}`);
+});
+
 function crearGladiador(nombre) {
     console.log(`🚀 [SISTEMA] Desplegando gladiador 1.21.1: ${nombre}`);
     
     const bot = mineflayer.createBot({
         host: 'serverlozano.aternos.me',
         username: nombre,
-        version: '1.21.1', // Forzamos la versión madre para evitar el error
-        connectTimeout: 60000
+        version: '1.21.1', // Versión madre
+        connectTimeout: 90000,
+        checkTimeoutInterval: 60000
     });
 
     bot.loadPlugin(pvp);
     bot.loadPlugin(pathfinder);
 
     bot.once('spawn', () => {
-        console.log(`✅ [${bot.username}] Dentro del portal. Configurando física...`);
+        console.log(`✅ [${bot.username}] En el mundo. Esperando 10s para estabilizar...`);
 
-        // Esperamos 5 segundos para que los chunks carguen bien en la LENOVO/Aternos
+        // Espera larga de 10 segundos para que Aternos cargue el mapa completo
         setTimeout(() => {
             try {
                 const mcData = mcDataFactory('1.21.1');
                 const movements = new Movements(bot, mcData);
                 
-                // Ajustes para evitar que el bot se quede "pensando" y lance assertion
-                movements.canDig = false; // No intentar romper bloques
+                // CONFIGURACIÓN ANTI-ERRORES
+                movements.canDig = false; 
+                movements.allow1by1towers = false; // Evita que el bot intente subir bloques
                 bot.pathfinder.setMovements(movements);
                 
-                console.log(`🧠 [${bot.username}] Cerebro 1.21.1 cargado.`);
+                console.log(`🧠 [${bot.username}] Cerebro configurado. Buscando combate...`);
 
-                // CICLO DE COMBATE
+                // CICLO DE PELEA SEGURO
                 setInterval(() => {
-                    const rival = bot.nearestEntity(e => e.type === 'player' && e.username !== bot.username);
-                    if (rival && bot.pvp && bot.entity) {
-                        console.log(`🥊 ${bot.username} atacando a ${rival.username}`);
-                        bot.pvp.attack(rival);
+                    try {
+                        const rival = bot.nearestEntity(e => e.type === 'player' && e.username !== bot.username);
+                        if (rival && bot.pvp && bot.entity) {
+                            bot.pvp.attack(rival);
+                        }
+                    } catch (innerErr) {
+                        // Si falla el ataque, simplemente no hace nada este turno
                     }
-                }, 15000);
+                }, 10000);
 
             } catch (error) {
-                console.log("⚠️ Error de inicialización, reintentando...");
+                console.log("⚠️ Error de carga inicial. Reiniciando bot...");
+                bot.quit();
             }
-        }, 5000);
+        }, 10000);
     });
 
-    // AUTO-RESPAWN (Vital para que la pelea no se detenga)
     bot.on('death', () => {
         console.log(`💀 ${bot.username} murió. Reapareciendo...`);
-        // Aternos a veces tarda en procesar el respawn, le damos 2 segundos
-        setTimeout(() => bot.emit('respawn'), 2000);
+        setTimeout(() => { if (bot.isAlive) bot.emit('respawn'); }, 2000);
     });
 
-    // CHALECO ANTIBALAS CONTRA CRASHES
-    process.on('uncaughtException', (err) => {
-        if (err.message.includes('assertion') || err.code === 'ERR_ASSERTION') {
-            console.log("🛡️ [ANTICRASH] Bloqueada una aserción de la 1.21.1. El bot sigue.");
-        } else {
-            console.error("❌ Error inesperado:", err);
-        }
+    bot.on('end', (reason) => {
+        console.log(`⏳ Conexión perdida (${reason}). Reintentando en 15s...`);
+        setTimeout(() => crearGladiador(nombre), 15000);
     });
 
-    bot.on('end', () => {
-        console.log("⏳ Conexión perdida. Reintentando en 20s...");
-        setTimeout(() => crearGladiador(nombre), 20000);
+    bot.on('error', (err) => {
+        console.log(`❗ Error detectado en ${bot.username}: ${err.message}`);
     });
 }
 
 // LANZAR BOTS
-crearGladiador("Gladiador_Lozano_1");
-crearGladiador("Gladiador_Lozano_2");
+crearGladiador("Gladiador_1");
+crearGladiador("Gladiador_2");
 
-// SERVIDOR WEB PARA RENDER
+// SERVIDOR HTTP PARA RENDER
 const http = require('http');
 http.createServer((req, res) => {
-    res.write("Arena 1.21.1 Activa");
+    res.write("Portal 1.21.1 Blindado");
     res.end();
 }).listen(process.env.PORT || 3000);
