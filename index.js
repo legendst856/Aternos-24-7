@@ -1,69 +1,43 @@
 const mineflayer = require('mineflayer');
-const http = require('http');
 
-// Mantiene el proceso vivo con el mínimo de RAM (Uso de memoria base)
-http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Portal Activo');
-}).listen(process.env.PORT || 10000);
-
-const CONFIG = {
-    host: 'serverlozano.aternos.me',
-    port: 53121,
-    version: '1.21.1',
-    auth: 'offline'
-};
-
-// Genera nombres aleatorios para cada reconexión
-function generarNombre() {
-    return 'Lozano_' + Math.random().toString(36).substring(2, 7).toUpperCase();
-}
-
-function iniciarBot(id) {
-    const username = generarNombre();
-    console.log(`[Bot ${id}] Intentando entrar como ${username}...`);
-
+function crearBot() {
     const bot = mineflayer.createBot({
-        ...CONFIG,
-        username: username,
-        viewDistance: 'tiny', // CLAVE: Reduce drásticamente el uso de RAM
+        host: 'tu-server.aternos.me',
+        username: 'Guardian_24_7',
+        version: false
     });
-
-    // Limitar el procesamiento de física para ahorrar CPU/RAM
-    bot.physicsEnabled = true; 
 
     bot.on('spawn', () => {
-        console.log(`✅ ${username} en posición.`);
-        // Anti-AFK ultra ligero (solo un salto cada 5 min)
-        const afkInterval = setInterval(() => {
-            if (bot.entity) {
-                bot.setControlState('jump', true);
-                setTimeout(() => bot.setControlState('jump', false), 500);
-            }
-        }, 300000);
-
-        bot.once('end', () => clearInterval(afkInterval));
+        console.log("✅ Bot en el portal. Iniciando ciclo de vida 24/7.");
+        
+        // --- TRUCO ANT-AFK AGRESIVO ---
+        // El bot saltará y mirará a los lados cada 20 segundos
+        setInterval(() => {
+            bot.setControlState('jump', true);
+            setTimeout(() => bot.setControlState('jump', false), 500);
+            
+            // Cambia la mirada para que Aternos crea que es un humano
+            const yaw = Math.random() * Math.PI * 2;
+            const pitch = (Math.random() - 0.5) * Math.PI;
+            bot.look(yaw, pitch);
+        }, 20000);
     });
 
-    // Manejo de desconexión (Si el server se apaga)
     bot.on('end', () => {
-        console.log(`[Bot ${id}] Servidor offline o desconectado. Reintentando en 2 min...`);
-        // Espera larga (2 min) para que Render no se sature de intentos fallidos
-        setTimeout(() => iniciarBot(id), 120000); 
+        console.log("❌ Conexión perdida. Reintentando en 5 segundos...");
+        setTimeout(crearBot, 5000); // Reintento rápido para que el server no se apague
     });
 
-    // Manejo de errores para que el script no explote
     bot.on('error', (err) => {
-        if (err.code === 'ECONNREFUSED') {
-            // No imprimimos todo el error para no llenar el log de Render
-        } else {
-            console.log(`[Bot ${id}] Error: ${err.message}`);
-        }
+        console.log("⚠️ Error de conexión: " + err.message);
     });
 }
 
-// SOLO 2 BOTS: Render gratuito no soporta 4 bots de mineflayer estables.
-// Con 2 bots es suficiente para que Aternos no se apague y Render no te mate.
-console.log("Iniciando portal equilibrado...");
-setTimeout(() => iniciarBot(1), 5000);
-setTimeout(() => iniciarBot(2), 35000);
+crearBot();
+
+// --- ESTO ES PARA CRON-JOB / UPTIME ROBOT ---
+const http = require('http');
+http.createServer((req, res) => {
+    res.write("Portal Activo");
+    res.end();
+}).listen(process.env.PORT || 3000);
