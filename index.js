@@ -1,61 +1,52 @@
 const mineflayer = require('mineflayer');
+const { pvp, typeof: pvpType } = require('mineflayer-pvp');
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 
-// Nombres aleatorios para saltar el baneo
-function generarNombre() {
-    const nombres = ['LozanoBot', 'PortalVip', 'Steve_777', 'Ghost_MC', 'User_Lozano'];
-    const random = Math.floor(Math.random() * 900) + 100;
-    return `${nombres[Math.floor(Math.random() * nombres.length)]}${random}`;
-}
-
-function iniciarBot() {
-    const botNombre = generarNombre();
-    console.log(`\n🔍 [INTENTO] Probando conexión con: ${botNombre}`);
-
+function crearBot(nombre, esAtacante) {
     const bot = mineflayer.createBot({
         host: 'serverlozano.aternos.me',
-        username: botNombre,
+        username: nombre,
         version: false,
-        connectTimeout: 90000, // Aumentamos a 90 segundos (paciencia extrema)
+        connectTimeout: 60000
     });
 
-    // --- MANEJO DE ERRORES (Aquí es donde evitamos que muera) ---
-    bot.on('error', (err) => {
-        if (err.code === 'ETIMEOUT') {
-            console.log("⚠️ [ESPERA] El servidor no responde (ETIMEOUT). Reintentando...");
-        } else if (err.code === 'ECONNREFUSED') {
-            console.log("🚫 [OFFLINE] El portal está cerrado.");
-        } else {
-            console.log("❗ [ERROR] " + err.message);
-        }
-    });
+    // Cargamos los plugins de combate y movimiento
+    bot.loadPlugin(pvp);
+    bot.loadPlugin(pathfinder);
 
     bot.on('spawn', () => {
-        console.log(`✅ [PORTAL] ${bot.username} está dentro.`);
-        // Acción Anti-AFK
+        console.log(`⚔️ [GLADIADOR] ${bot.username} ha entrado a la arena.`);
+        const defaultMove = new Movements(bot);
+        
+        // El bot buscará pelea cada 10 segundos
         setInterval(() => {
-            if (bot.entity) bot.setControlState('jump', true);
-            setTimeout(() => bot.setControlState('jump', false), 500);
-        }, 30000);
+            const rival = bot.nearestEntity(e => e.type === 'player' && e.username !== bot.username);
+            
+            if (rival && esAtacante) {
+                console.log(`🥊 ${bot.username} atacando a ${rival.username}`);
+                bot.pvp.attack(rival);
+            }
+        }, 10000);
     });
 
-    // --- REINTENTO AUTOMÁTICO PASE LO QUE PASE ---
-    bot.on('end', () => {
-        console.log("⏳ [PORTAL] Reiniciando conexión en 20 segundos...");
-        setTimeout(iniciarBot, 20000); 
+    // Si el bot muere, le damos a "Respawn" automáticamente para que siga la pelea
+    bot.on('death', () => {
+        console.log(`💀 ${bot.username} fue eliminado. Reapareciendo...`);
+        bot.quit();
+        setTimeout(() => crearBot(nombre, esAtacante), 5000);
     });
+
+    bot.on('error', (err) => console.log(`❗ Error en ${nombre}: ${err.message}`));
 }
 
-// Arrancar el sistema
-try {
-    iniciarBot();
-} catch (e) {
-    console.log("❌ Error fatal evitado: " + e.message);
-    setTimeout(iniciarBot, 30000);
-}
+// LANZAMOS DOS BOTS PARA QUE SE PELEEN ENTRE ELLOS
+// El bot 1 busca al 2, y el 2 busca al 1.
+crearBot("Bot_Lozano_1", true);
+crearBot("Bot_Lozano_2", true);
 
-// --- SERVIDOR PARA RENDER ---
+// --- SERVIDOR WEB PARA RENDER ---
 const http = require('http');
 http.createServer((req, res) => {
-    res.write("Portal Lozano 24/7 Corriendo");
+    res.write("Arena de combate activa 24/7");
     res.end();
 }).listen(process.env.PORT || 3000);
