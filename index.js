@@ -3,59 +3,70 @@ const { pvp } = require('mineflayer-pvp');
 const { pathfinder, Movements } = require('mineflayer-pathfinder');
 
 function crearGladiador(nombre) {
+    console.log(`🚀 [SISTEMA] Creando a ${nombre}...`);
+    
     const bot = mineflayer.createBot({
         host: 'serverlozano.aternos.me',
         username: nombre,
-        version: false, // Auto-detectar
+        version: false, // Deja que el bot detecte la versión solo
         connectTimeout: 60000
     });
 
-    // Cargamos los plugins
     bot.loadPlugin(pvp);
     bot.loadPlugin(pathfinder);
 
     bot.on('spawn', () => {
-        console.log(`⚔️ [PORTAL] ${bot.username} ha reaparecido.`);
-        
-        // --- LA SOLUCIÓN AL ERR_ASSERTION ---
-        // Le enseñamos al bot cómo moverse en este mapa específico
-        const mcData = require('minecraft-data')(bot.version);
-        const movimientos = new Movements(bot, mcData);
-        bot.pathfinder.setMovements(movimientos); 
+        // Esperamos 3 segundos después de nacer para que cargue el mapa
+        setTimeout(() => {
+            try {
+                const mcData = require('minecraft-data')(bot.version);
+                if (!mcData) {
+                    console.log("⚠️ No se pudieron cargar datos de la versión. Reintentando...");
+                    return;
+                }
 
-        // Ciclo de combate cada 10 segundos
-        setInterval(() => {
-            // Buscar al otro bot (que no sea él mismo)
-            const rival = bot.nearestEntity(e => e.type === 'player' && e.username !== bot.username);
-            
-            if (rival) {
-                console.log(`🥊 ${bot.username} detectó a ${rival.username}. ¡Al ataque!`);
-                // El bot perseguirá y golpeará al rival sin errores
-                bot.pvp.attack(rival);
+                const movements = new Movements(bot, mcData);
+                bot.pathfinder.setMovements(movements);
+                console.log(`⚔️ [${bot.username}] ¡Cerebro de combate listo!`);
+
+                // Ciclo de ataque cada 10 segundos
+                setInterval(() => {
+                    const rival = bot.nearestEntity(e => e.type === 'player' && e.username !== bot.username);
+                    if (rival && bot.pvp) {
+                        console.log(`🥊 ${bot.username} atacando a ${rival.username}`);
+                        bot.pvp.attack(rival);
+                    }
+                }, 10000);
+
+            } catch (e) {
+                console.log("❌ Error al inicializar movimientos: " + e.message);
             }
-        }, 10000);
+        }, 3000);
     });
 
-    // Si el bot muere, revive y sigue la pelea
-    bot.on('death', () => {
-        console.log(`💀 ${bot.username} cayó en combate. Volviendo a la arena...`);
+    bot.on('death', () => console.log(`💀 ${bot.username} murió. Esperando respawn...`));
+    
+    bot.on('error', (err) => {
+        if (err.code === 'ERR_ASSERTION') {
+            console.log("🛡️ Bloqueado un ERR_ASSERTION. El bot sigue vivo.");
+        } else {
+            console.log("❗ Error:", err.message);
+        }
     });
 
-    // Reintento si se cae la conexión
     bot.on('end', () => {
-        setTimeout(() => crearGladiador(nombre), 15000);
+        console.log("⏳ Conexión perdida. Reintentando en 20s...");
+        setTimeout(() => crearGladiador(nombre), 20000);
     });
-
-    bot.on('error', (err) => console.log(`❗ Error en ${nombre}: ${err.message}`));
 }
 
-// LANZAR LOS DOS GUERREROS DEL PORTAL
+// LANZAR LOS DOS BOTS
 crearGladiador("Gladiador_1");
 crearGladiador("Gladiador_2");
 
-// SERVIDOR PARA RENDER
+// SERVIDOR WEB PARA RENDER
 const http = require('http');
 http.createServer((req, res) => {
-    res.write("Arena de combate 24/7 funcionando");
+    res.write("Arena Activa");
     res.end();
 }).listen(process.env.PORT || 3000);
