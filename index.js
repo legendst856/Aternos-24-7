@@ -3,73 +3,86 @@ const pvp = require('mineflayer-pvp').plugin;
 const { pathfinder, Movements } = require('mineflayer-pathfinder');
 const mcDataFactory = require('minecraft-data');
 
-// --- OPTIMIZACIÓN GLOBAL (Carga única) ---
+// --- CARGA GLOBAL (Ahorro de RAM para evitar crashes) ---
 const mcData = mcDataFactory('1.21.1');
 const movimientosBase = { canDig: false, allow1by1towers: false };
 
 process.on('uncaughtException', (err) => {
-    // Bloqueamos el error de aserción pero no lo logueamos todo el tiempo para ahorrar CPU/RAM
-    if (!err.message.includes('assertion')) console.log(`🛡️ [ESCUDO] Error: ${err.message}`);
+    if (!err.message.includes('assertion')) console.log(`🛡️ [ANTICRASH] Error: ${err.message}`);
 });
 
 function crearGladiador(nombre) {
-    console.log(`🚀 [SISTEMA] Iniciando ${nombre}...`);
+    console.log(`🚀 [SISTEMA] Conectando gladiador 24/7: ${nombre}`);
     
-    // Configuramos el bot con el mínimo consumo posible
-    let bot = mineflayer.createBot({
+    const bot = mineflayer.createBot({
         host: 'serverlozano.aternos.me',
         username: nombre,
         version: '1.21.1', 
-        viewDistance: "tiny", // Vital para Render
-        checkTimeoutInterval: 60000,
-        physicsEnabled: true // Solo activamos físicas si es necesario
+        viewDistance: "tiny",
+        // --- CONFIGURACIÓN DE RED AGRESIVA ---
+        checkTimeoutInterval: 45000, 
+        connectTimeout: 90000,
+        keepAlive: true, // Mantiene la conexión activa con el server
+        hideErrors: true 
     });
 
     bot.loadPlugin(pvp);
     bot.loadPlugin(pathfinder);
 
-    let fightInterval = null;
+    let mainLoop = null;
 
     bot.once('spawn', () => {
-        console.log(`✅ [${bot.username}] Conectado.`);
+        console.log(`✅ [${bot.username}] Conexión establecida.`);
         
-        // Creamos los movimientos usando la base global para ahorrar RAM
         const movements = new Movements(bot, mcData);
         Object.assign(movements, movimientosBase);
         bot.pathfinder.setMovements(movements);
         
-        // Evitamos duplicar intervalos
-        if (fightInterval) clearInterval(fightInterval);
+        if (mainLoop) clearInterval(mainLoop);
 
-        fightInterval = setInterval(() => {
+        // --- PROTOCOLO DE ACTIVIDAD CONSTANTE (Evita el error desconocido) ---
+        mainLoop = setInterval(() => {
             if (!bot || !bot.entity) return;
-            const rival = bot.nearestEntity(e => e.type === 'player' && e.username !== bot.username);
+
+            const rival = bot.nearestEntity(e => (e.type === 'player' || e.type === 'mob') && e.username !== bot.username);
+            
             if (rival && bot.pvp) {
+                // Modo Ataque
                 bot.pvp.attack(rival);
+            } else {
+                // Modo Vigilancia (Movimiento constante para que no lo saquen)
+                const acciones = ['forward', 'back', 'left', 'right'];
+                const mover = acciones[Math.floor(Math.random() * acciones.length)];
+                
+                bot.setControlState(mover, true);
+                bot.setControlState('jump', true);
+                
+                setTimeout(() => {
+                    if (bot.setControlState) {
+                        bot.setControlState(mover, false);
+                        bot.setControlState('jump', false);
+                    }
+                }, 500);
             }
-        }, 12000); // Un poco más lento para darle respiro al CPU de Render
+        }, 8000); 
     });
 
-    // Respawn automático ligero
+    // Respawn sin errores
     bot.on('death', () => {
-        setTimeout(() => { if (bot && !bot.isAlive) bot.emit('respawn'); }, 2000);
+        console.log(`💀 ${bot.username} murió. Reviviendo...`);
+        bot.emit('respawn');
     });
 
-    // --- LIMPIEZA AGRESIVA DE MEMORIA PARA RENDER ---
+    // RECONEXIÓN INSTANTÁNEA (Si se cae, vuelve a entrar en 5 segundos)
     bot.on('end', (reason) => {
-        console.log(`♻️ [LIMPIEZA] Cerrando ${nombre} (${reason}). Liberando RAM...`);
-        
-        if (fightInterval) clearInterval(fightInterval);
-        
-        // Matamos todos los procesos y referencias
+        console.log(`⚠️ [DESCONEXIÓN] ${nombre} perdió conexión: ${reason}. Reintentando en 5s...`);
+        if (mainLoop) clearInterval(mainLoop);
         bot.removeAllListeners();
-        if (bot.pathfinder) bot.pathfinder.stop();
-        
-        // Forzamos al bot a ser nulo para que el recolector de basura de Node.js actúe
-        bot = null; 
+        setTimeout(() => crearGladiador(nombre), 5000);
+    });
 
-        // Esperamos un poco más para reconectar y dejar que la RAM baje
-        setTimeout(() => crearGladiador(nombre), 20000);
+    bot.on('error', (err) => {
+        if (err.code === 'ECONNREFUSED') console.log("❌ Server apagado.");
     });
 }
 
@@ -77,8 +90,8 @@ function crearGladiador(nombre) {
 crearGladiador("Gladiador_1");
 crearGladiador("Gladiador_2");
 
-// SERVIDOR WEB ULTRA-SIMPLE (OBLIGATORIO PARA RENDER)
+// --- SERVIDOR WEB DE MANTENIMIENTO (Para Render/Railway) ---
 const http = require('http');
 http.createServer((req, res) => {
-    res.end('Portal Lozano OK');
+    res.end('Vigilante Lozano Online');
 }).listen(process.env.PORT || 3000);
